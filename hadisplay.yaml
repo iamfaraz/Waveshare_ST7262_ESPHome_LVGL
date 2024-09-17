@@ -1,0 +1,781 @@
+substitutions:
+  name: hadisplay
+  friendly_name: "Home Assistant Display"
+  device_description: "Smart Dashboard"
+
+  lightbulb: "\U000F0335"
+  ceiling_light: "\U000F0769"
+  lamp: "\U000F06B5"
+  floor_lamp: "\U000F08DD"
+  string_lights: "\U000F12BA"
+  clock: "\U000F0150"
+  ceiling_fan: "\U000F1797"
+  light_recessed: "\U000F179B"
+  blinds_horizontal: "\U000F1A2B"
+  blinds_horizontal_closed: "\U000F1A2C"
+  curtains_closed: "\U000F1847"
+  curtains: "\U000F1846"
+  wallsconce: "\U000F091C"
+  bed: "\U000F02E3"
+  bed_empty: "\U000F08A0"
+  thermometer_high: "\U000F10C2"
+  humidity: "\U000F058E"
+  wallsconce_variant: "\U000F091E"
+  kiss: "\U000F0C73"
+  hvac: "\U000F0D43"
+  pump_icon: "\U000F058F"
+
+esphome:
+  name: ${name}
+  platformio_options:
+    build_flags: "-DBOARD_HAS_PSRAM"
+    board_build.esp-idf.memory_type: qio_opi
+    board_build.flash_mode: dio
+    board_upload.maximum_ram_size: 524288
+    board_build.flash_size: 8MB
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y
+      CONFIG_ESP32S3_DATA_CACHE_64KB: y
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+      CONFIG_ESPTOOLPY_FLASHSIZE_8MB: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Enable logging
+logger:
+  level: DEBUG
+  hardware_uart: UART0
+
+
+# Enable Home Assistant API
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # manual_ip:
+  #   # Set this to the IP of the ESP
+  #   static_ip: 192.168.1.101
+  #   # Set this to the IP address of the router. Often ends with .1
+  #   gateway: 192.168.1.1
+  #   # The subnet of the network. 255.255.255.0 works for most home networks.
+  #   subnet: 255.255.255.0
+
+  # # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "HADisplay Fallback Hotspot"
+    password: "11223344"
+
+web_server:
+  port: 80
+
+external_components:
+  - source: github://pr#7427
+    components: [lvgl, font]
+
+  # CH422G I/O Expander
+  # https://github.com/esphome/esphome/pull/7356
+  - source: github://pr#7356
+    components: [ch422g]
+
+  # rpi_dpi_rgb
+  # https://github.com/esphome/esphome/pull/7383
+  - source: github://pr#7383
+    components: [rpi_dpi_rgb]
+
+  
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Asia/Karachi
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
+    on_time_sync:
+      - script.execute: time_update
+    on_time:
+      - minutes: "*"
+        seconds: 0
+        then:
+          - script.execute: time_update
+      # Execute weather_update script with 1hr interval
+      - seconds: 0
+        minutes: 0
+        hours: /1
+        then:
+          - script.execute: weather_update
+
+script:
+    # Update Weather Label - WIP
+  - id: weather_update
+    then:
+      - lvgl.label.update:
+          id: display_time
+          text: !lambda |-
+            static char time_buf[17];
+            #auto now = id(sntp_time).now();          
+            #bool is_pm = now.hour >= 12;
+            #int hour_12 = now.hour % 12;
+            #if (hour_12 == 0) { hour_12 = 12; }
+            #snprintf(time_buf, sizeof(time_buf), "%02d:%02d %s", hour_12, now.minute, is_pm ? "PM" : "AM");
+            return time_buf;
+  - id: time_update
+    then:
+      - lvgl.label.update:
+          id: display_time
+          text: !lambda |-
+            static char time_buf[17];
+            auto now = id(sntp_time).now();          
+            bool is_pm = now.hour >= 12;
+            int hour_12 = now.hour % 12;
+            if (hour_12 == 0) { hour_12 = 12; }
+            snprintf(time_buf, sizeof(time_buf), "%02d:%02d %s", hour_12, now.minute, is_pm ? "PM" : "AM");
+            return time_buf;
+      # - lvgl.label.update:
+      #     id: display_time_merridian
+      #     text: !lambda |-
+      #       static char time_buf[17];
+      #       auto now = id(sntp_time).now();            
+      #       bool is_pm = now.hour >= 12;
+      #       snprintf(time_buf, sizeof(time_buf), "%s",);
+      #       return time_buf;
+
+font:
+  - file: "gfonts://Roboto"
+    id: roboto24
+    size: 24
+    # bpp: 4
+    extras:
+      - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+        glyphs: [
+            "\U000F004B",
+            "\U0000f0ed",
+            "\U000F006E",
+            "\U000F012C",
+            "\U000F179B",
+            "\U000F0748",
+            "\U000F1A1B",
+            "\U000F02DC",
+            "\U000F0A02",
+            "\U000F035F",
+            "\U000F0156",
+            "\U000F0C5F",
+            "\U000f0084",
+            "\U000f0091",
+            "\U000F058E",
+            "\U000F10C3",
+            "\U000F03F0", # mdi-percent
+            "\U000F0504", # mdi- celcius
+            "\U000F091E",
+            "\U000F0143", # mdi-arrow_up
+            "\U000F0140", # mdi-arrow_down
+          ]
+  - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+    id: weather70
+    size: 70
+    # bpp: 4
+    glyphs: &mdi-weather-glyphs
+      - "\U000F0590" # mdi-weather-cloudy
+      - "\U000F0F2F" # mdi-weather-cloudy-alert
+      - "\U000F0E6E" # mdi-weather-cloudy-arrow-right
+      - "\U000F0591" # mdi-weather-fog
+      - "\U000F0592" # mdi-weather-hail
+      - "\U000F0F30" # mdi-weather-hazy
+      - "\U000F0898" # mdi-weather-hurricane
+      - "\U000F0593" # mdi-weather-lightning
+      - "\U000F067E" # mdi-weather-lightning-rainy
+      - "\U000F0594" # mdi-weather-clear-night
+      - "\U000F0F31" # mdi-weather-night-partly-cloudy
+      - "\U000F0595" # mdi-weather-partly-cloudy
+      - "\U000F0F32" # mdi-weather-partly-lightning
+      - "\U000F0F33" # mdi-weather-partly-rainy
+      - "\U000F0F34" # mdi-weather-partly-snowy
+      - "\U000F0F35" # mdi-weather-partly-snowy-rainy
+      - "\U000F0596" # mdi-weather-pouring
+      - "\U000F0597" # mdi-weather-rainy
+      - "\U000F0598" # mdi-weather-snowy
+      - "\U000F0F36" # mdi-weather-snowy-heavy
+      - "\U000F067F" # mdi-weather-snowy-rainy
+      - "\U000F0599" # mdi-weather-sunny
+      - "\U000F0F37" # mdi-weather-sunny-alert
+      - "\U000F14E4" # mdi-weather-sunny-off
+      - "\U000F059A" # mdi-weather-sunset
+      - "\U000F059B" # mdi-weather-sunset-down
+      - "\U000F059C" # mdi-weather-sunset-up
+      - "\U000F0F38" # mdi-weather-tornado
+      - "\U000F059D" # mdi-weather-windy
+      - "\U000F059E" # mdi-weather-windy-variant
+
+  - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+    id: light32
+    size: 32
+    # bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F0769", # mdi-ceiling-light
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+        "\U000F0150", # mdi-clock
+        "\U000F1797", # mdi-ceiling_fan
+        "\U000F179B", # mdi-light_recessed
+        "\U000F1A2B", # mdi-blinds_horizontal
+        "\U000F1A2C", # mdi-blinds_horizontal_closed
+        "\U000F1847", # mdi-curtains_closed
+        "\U000F1846", # mdi-curtains
+        "\U000F091C", # mdi-wallsconce
+        "\U000F02E3", # mdi-bed
+        "\U000F08A0", # mdi-bed_empty
+        "\U000F10C2", # mdi-thermometer_high
+        "\U000F058E", # mdi-humidity
+        "\U000F091E", # mdi-wallsconce_variant
+        "\U000F0C73", # mdi-kiss
+        "\U000F0D43", # mdi- hvac
+        "\U000F058F", # mdi-water_pump
+      ]
+
+  - file: "gfonts://Roboto"
+    id: roboto10
+    size: 10
+    # bpp: 4
+
+  - file: "gfonts://Roboto"
+    id: roboto22
+    size: 22
+    # bpp: 4
+
+  - file: 
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: roboto90
+    size: 90
+    # bpp: 4
+
+  - file: 
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: roboto55bold
+    size: 55
+
+  - file: "gfonts://Roboto"
+    id: roboto55
+    size: 55
+    # bpp: 4
+
+image:
+  - file: "images/dashboard1.jpg"
+    id: disp_bg
+    resize: 800x480
+    type: RGB565
+
+i2c:
+  - id: bus_a
+    sda: GPIO8
+    scl: GPIO9
+    scan: true
+
+ch422g:
+  - id: io_ex
+    address: 0x24
+
+# Toggles backlight of Waveshare ESP32-S3-Touch-LCD-4.3
+switch:
+  - platform: gpio
+    name: "Backlight Toggle"
+    pin: 
+      ch422g: io_ex
+      number: 2
+      allow_other_uses: true
+# CH422G saves the last state internally, but gpio switch sets state as off except when using RESTORE_ modes
+    restore_mode: ALWAYS_ON
+
+touchscreen:
+  platform: gt911
+  address: 0x5D
+  id: my_touchscreen
+  update_interval: 16ms
+  interrupt_pin: 4
+  on_touch:
+    - lambda: |-
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+              touch.x,
+              touch.y,
+              touch.x_raw,
+              touch.y_raw
+              );
+
+display:
+  - platform: rpi_dpi_rgb
+    id: my_display
+    #rotation: 90
+    auto_clear_enabled: false
+    update_interval: never
+    color_order: RGB
+    pclk_frequency: 14MHz
+    dimensions:
+      width: 800
+      height: 480
+    de_pin:
+      number: 5
+    reset_pin:
+      ch422g: io_ex
+      number: 3
+    enable_pin:
+      ch422g: io_ex
+      number: 2
+      allow_other_uses: true
+    hsync_pin:
+      number: 46
+      ignore_strapping_warning: true
+    vsync_pin:
+      number: 3
+      ignore_strapping_warning: true
+    pclk_pin: 7
+    pclk_inverted: false
+    hsync_back_porch: 10
+    hsync_front_porch: 20
+    hsync_pulse_width: 10
+    vsync_back_porch: 10
+    vsync_front_porch: 10
+    vsync_pulse_width: 10
+    data_pins:
+      red:
+        - 1 # R3
+        - 2 # R4
+        - 42 # R5
+        - 41 # R6
+        - 40 # R7
+      green:
+        - 39 # G2
+        - 0 # G3
+        - 45 # G4
+        - 48 # G5
+        - 47 # G6
+        - 21 # G7
+      blue:
+        - 14 # B3
+        - 38 # B4
+        - 18 # B5
+        - 17 # B6
+        - 10 # B7
+
+#-------------------------------------------
+# Home Assistant Sensors
+#-------------------------------------------
+sensor:
+  - platform: homeassistant
+    entity_id: sensor.bedroom_temperature_preserved
+    id: bedroom_temp
+    on_value:
+      - lvgl.label.update:
+          id: temp_text
+          text:
+            format: "\U000F10C3 %.1f \U000F0504"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.bedroom_humidity_preserved
+    id: bedroom_humi
+    on_value:
+      - lvgl.label.update:
+          id: humidity_text
+          text:
+            format: "\U000F058E %.0f \U000F03F0"
+            args: ["x"]
+
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: diagnostic
+    internal: true
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Strength"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    ssid:
+      name: "Connected SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "Mac Address"
+      entity_category: diagnostic
+
+binary_sensor:
+  - platform: homeassistant
+    id: bedroom_light
+    entity_id: light.bedroom_light_2
+    publish_initial_state: true
+    on_state:
+      then:
+        lvgl.widget.update:
+          id: lv_button_1
+          state:
+            checked: !lambda return x;
+  - platform: homeassistant
+    id: living_room_light
+    entity_id: light.living_room_light_2
+    publish_initial_state: true
+    on_state:
+      then:
+        lvgl.widget.update:
+          id: lv_button_2
+          state:
+            checked: !lambda return x;
+  - platform: homeassistant
+    id: water_pump_switch
+    entity_id: switch.water_pump_switch_1
+    publish_initial_state: true
+    on_state:
+      then:
+        lvgl.widget.update:
+          id: lv_button_3
+          state:
+            checked: !lambda return x;
+
+color:
+  - id: text_color
+    hex: FFFFFF
+  - id: light_red
+    hex: FF3340
+  - id: red
+    hex: FF0000
+  - id: white
+    hex: FFFFFF
+  - id: light_blue
+    hex: 009EFF
+  - id: grey
+    hex: 989898
+  - id: light_green
+    hex: A8F698
+  - id: orange
+    hex: CC5E14
+  - id: green
+    hex: 2CAE65
+  - id: blue
+    hex: 3792CB
+  - id: dark_blue
+    hex: 0000FF
+
+
+#-------------------------------------------
+# lvgl Buttons
+#-------------------------------------------
+lvgl:
+  touchscreens:
+    - touchscreen_id: my_touchscreen
+  # on_idle:
+  #   - timeout: 10s
+  #     then:
+  #       - logger.log: idle timeout
+  #       - if:
+  #           condition:
+  #             lvgl.is_idle:
+  #               timeout: 5s
+  #           then:
+  #             - logger.log: LVGL is idle
+  #   - timeout: 15s
+  #     then:
+  #       - logger.log: idle 15s timeout
+
+  # log_level: INFO
+  color_depth: 16
+  disp_bg_image: disp_bg
+  bg_opa: TRANSP
+  style_definitions:
+    - id: style_line
+      line_color: 0x0000FF
+      line_width: 8
+      line_rounded: true
+    - id: date_style
+      text_font: roboto24
+      align: center
+      text_color: 0x333333
+      bg_opa: cover
+      radius: 4
+      pad_all: 2
+
+    ####Header_Footer##########
+    - id: header_footer
+      bg_color: 0x0C7B5F
+      bg_grad_color: 0x03291F
+      bg_grad_dir: VER
+      bg_opa: COVER
+      border_width: 0
+      radius: 0
+      pad_all: 0
+      pad_row: 0
+      pad_column: 0
+      border_color: 0x0077b3
+      text_color: 0xFFFFFF
+      width: 100%
+      height: 40
+
+  theme:
+    button:
+      text_font: roboto24
+      scroll_on_focus: true
+      # group: general
+      radius: 5
+      width: 150
+      height: 150
+      pad_left: 10px
+      pad_top: 10px
+      pad_bottom: 10px
+      pad_right: 10px
+      shadow_width: 0
+      bg_color: 0x000000
+      border_width: 3
+      border_color: white
+      border_side: ['TOP', 'BOTTOM', 'LEFT', 'RIGHT']
+      text_color: text_color
+      checked:
+        # bg_color: 0xCC5E14   # Orange
+        bg_color: green   # Green
+        # bg_color: 0x026a6e    # Dark Green
+        #bg_color: 0x0000FF   # Blue
+        #bg_color: 0x3792CB   # Blue
+        text_color: text_color
+
+    obj:
+      text_font: roboto24
+      scroll_on_focus: true
+      # group: general
+      radius: 5
+      width: 400
+      height: 150
+      pad_left: 10px
+      pad_top: 10px
+      pad_bottom: 10px
+      pad_right: 10px
+      shadow_width: 0
+      bg_color: 0x000000
+      border_width: 3
+      border_color: white
+      border_side: ['TOP', 'BOTTOM', 'LEFT', 'RIGHT']
+      text_color: text_color
+  top_layer:
+    widgets:
+      # - label:
+      #     text_font: roboto24
+      #     text: "00:00 am"
+      #     id: display_time
+      #     align: bottom_mid
+      #     #x: -2
+      #     y: -10
+      #     text_align: right
+      #     text_color: 0xFFFFFF
+
+      - label:
+          text_font: roboto24
+          text: "- %"
+          id: humidity_text
+          align: bottom_right
+          x: -20
+          y: -10
+          text_align: right
+          text_color: 0xFFFFFF
+
+      - label:
+          text_font: roboto24
+          text: "-.-°C"
+          id: temp_text
+          align: bottom_left
+          x: 12
+          y: -10
+          #text_align: right
+          text_color: 0xFFFFFF
+          on_press:
+            then:
+              - lvgl.page.show: main_page
+
+
+  page_wrap: true
+  pages:
+    - id: main_page
+      # skip: true
+      layout:
+        type: grid #flex
+        #flex_flow: ROW_WRAP
+        grid_row_align: CENTER
+        grid_column_align: CENTER
+        grid_rows: [150px, 150px]
+        grid_columns: [400px, 150px, 150px]
+        pad_row: 20px
+        pad_column: 20px 
+      width: 100%
+      # bg_color: 0x000000
+      # bg_opa: cover
+      pad_all: 5
+      widgets:
+        - obj:
+            #height: 207
+            checkable: true
+            id: lv_clock_obj
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 0
+            # layout:
+            #   type: grid #flex
+            #   #flex_flow: ROW_WRAP
+            #   grid_row_align: CENTER
+            #   grid_column_align: CENTER
+            #   grid_rows: [150px]
+            #   grid_columns: [300px, 100px]
+            #   pad_row: 0px
+            #   pad_column: 5px 
+            widgets:
+              - label:
+                  text_font: roboto90
+                  text: "00:00"
+                  id: display_time
+                  align: center
+                  # grid_cell_row_pos: 0
+                  # grid_cell_column_pos: 0
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              # - label:
+              #     text_font: roboto55bold
+              #     text: "AM"
+              #     id: display_time_merridian
+              #     grid_cell_row_pos: 0
+              #     grid_cell_column_pos: 1
+              #     align: center
+              #     text_align: 'CENTER'
+                  # text_color: 0xFFFFFF
+            # on_short_click:
+            #   - homeassistant.service:
+            #       service: light.toggle
+            #       data:
+            #         entity_id: light.bedroom_light_2
+        - obj:
+            #height: 207
+            checkable: true
+            id: lv_weather_obj
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 0
+            widgets:
+              - label:
+                  text_font: roboto55
+                  text: "It is 25"
+                  id: weather_label
+                  align: center
+                  text_align: center
+                  text_color: 0xFFFFFF
+            # on_short_click:
+            #   - homeassistant.service:
+            #       service: light.toggle
+            #       data:
+            #         entity_id: light.bedroom_light_2
+        - button:
+            #height: 207
+            checkable: true
+            id: lv_button_1
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 1
+            widgets:
+              - label:
+                  text_font: light32
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_1_icon
+              - label:
+                  text_font: roboto22
+                  align: bottom_mid
+                  text: "Bedroom"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.service:
+                  service: light.toggle
+                  data:
+                    entity_id: light.bedroom_light_2
+        - button:
+            #height: 207
+            checkable: true
+            id: lv_button_2
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 2
+            widgets:
+              - label:
+                  text_font: light32
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_2_icon
+              - label:
+                  text_font: roboto22
+                  align: bottom_mid
+                  text: "Kitchen"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.service:
+                  service: light.toggle
+                  data:
+                    entity_id: light.living_room_light_2
+        - button:
+            #height: 207
+            checkable: true
+            id: lv_backyard_light_btn
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 1
+            widgets:
+              - label:
+                  text_font: light32
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_backyard_light_icon
+              - label:
+                  text_font: roboto22
+                  align: bottom_mid
+                  text: "Backyard"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.backyard_light_switch_1_2
+        - button:
+            #height: 207
+            checkable: true
+            id: lv_button_3
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 2
+            widgets:
+              - label:
+                  text_font: light32
+                  align: top_left
+                  text: $pump_icon
+                  id: lv_button_3_icon
+              - label:
+                  text_font: roboto22
+                  align: bottom_mid
+                  text: "Water"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.water_pump_switch_1
