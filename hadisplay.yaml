@@ -75,7 +75,7 @@ wifi:
     gateway: 192.168.1.1
     #   # The subnet of the network. 255.255.255.0 works for most home networks.
     subnet: 255.255.255.0
-    #   # Set this to the DNS of your choosing. Often the IP of the router. (router IP is usually the DNS)
+    #   # The IP address of the DNS server. Often the same as the gateway.
     dns1: 192.168.1.1
 
   # # Enable fallback hotspot (captive portal) in case wifi connection fails
@@ -87,6 +87,9 @@ web_server:
   port: 80
 
 external_components:
+  # - source: github://pr#7427
+  #   components: [lvgl]
+
   # CH422G I/O Expander
   # https://github.com/esphome/esphome/pull/7356
   - source: github://pr#7356
@@ -121,8 +124,18 @@ script:
             bool is_pm = now.hour >= 12;
             int hour_12 = now.hour % 12;
             if (hour_12 == 0) { hour_12 = 12; }
-            snprintf(time_buf, sizeof(time_buf), "%02d:%02d %s", hour_12, now.minute, is_pm ? "PM" : "AM");
+            snprintf(time_buf, sizeof(time_buf), "%02d:%02d", hour_12, now.minute);
             return time_buf;
+      #      snprintf(time_buf, sizeof(time_buf), "%02d:%02d %s", hour_12, now.minute, is_pm ? "PM" : "AM");
+      # - lvgl.label.update:
+      #     id: display_time
+      #     text: !lambda |-
+      #       static char time_buf[17];
+      #       auto now = id(sntp_time).now();
+      #       bool is_pm = now.hour >= 12;
+      #       snprintf(time_buf, sizeof(time_buf), "%s");
+      #       ESP_LOGI("time: %s", time_buf);
+      #       return time_buf;
 
 font:
   - file:
@@ -267,6 +280,7 @@ ch422g:
 # Toggles backlight of Waveshare ESP32-S3-Touch-LCD-4.3
 switch:
   - platform: gpio
+    id: backlight_switch
     name: "Backlight Toggle"
     pin:
       ch422g: io_ex
@@ -289,6 +303,14 @@ touchscreen:
             touch.x_raw,
             touch.y_raw
             );
+  on_release:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - logger.log: "LVGL resuming"
+          - lvgl.resume:
+          - lvgl.widget.redraw:
+          - switch.turn_on: backlight_switch
 
 display:
   - platform: rpi_dpi_rgb
@@ -385,6 +407,16 @@ sensor:
     entity_category: diagnostic
 
 text_sensor:
+  - platform: template
+    name: "Time"
+    id: time_text
+    update_interval: 20s
+    lambda: |-
+      static char time_buf[17];
+      auto now = id(sntp_time).now();            
+      bool is_pm = now.hour >= 12;
+      snprintf(time_buf, sizeof(time_buf), "%02d:%02d", now.hour, now.minute);
+      return {time_buf};
   - platform: wifi_info
     ip_address:
       name: "IP Address"
@@ -395,6 +427,19 @@ text_sensor:
     mac_address:
       name: "Mac Address"
       entity_category: diagnostic
+
+number:
+  - platform: template
+    name: LVGL Screen timeout
+    optimistic: true
+    id: display_timeout
+    unit_of_measurement: "s"
+    initial_value: 45
+    restore_value: true
+    min_value: 10
+    max_value: 180
+    step: 5
+    mode: box
 
 binary_sensor:
   - platform: homeassistant
@@ -468,6 +513,12 @@ color:
 lvgl:
   touchscreens:
     - touchscreen_id: my_touchscreen
+  on_idle:
+    timeout: !lambda "return (id(display_timeout).state * 1000);"
+    then:
+      - logger.log: "LVGL is idle"
+      - switch.turn_off: backlight_switch
+      - lvgl.pause:
   # on_idle:
   #   - timeout: 10s
   #     then:
