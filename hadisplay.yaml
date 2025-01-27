@@ -56,23 +56,27 @@ logger:
   level: DEBUG
   hardware_uart: UART0
 
-
 # Enable Home Assistant API
 api:
+  encryption:
+    key: "ko9gKY/n2VCPUzYJgRY7bQvsNV4tZtbPC0boM2NseqQ="
 
 ota:
   - platform: esphome
+    password: "c3d5881ed204e27370b9de929222cb74"
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  # manual_ip:
-  #   # Set this to the IP of the ESP
-  #   static_ip: 192.168.1.101
-  #   # Set this to the IP address of the router. Often ends with .1
-  #   gateway: 192.168.1.1
-  #   # The subnet of the network. 255.255.255.0 works for most home networks.
-  #   subnet: 255.255.255.0
+  manual_ip:
+    #   # Set this to the IP of the ESP
+    static_ip: 192.168.1.138
+    #   # Set this to the IP address of the router. Often ends with .1
+    gateway: 192.168.1.1
+    #   # The subnet of the network. 255.255.255.0 works for most home networks.
+    subnet: 255.255.255.0
+    #   # Set this to the DNS of your choosing. Often the IP of the router. (router IP is usually the DNS)
+    dns1: 192.168.1.1
 
   # # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
@@ -83,9 +87,6 @@ web_server:
   port: 80
 
 external_components:
-  - source: github://pr#7427
-    components: [lvgl, font]
-
   # CH422G I/O Expander
   # https://github.com/esphome/esphome/pull/7356
   - source: github://pr#7356
@@ -96,44 +97,20 @@ external_components:
   - source: github://pr#7383
     components: [rpi_dpi_rgb]
 
-  
-
 time:
   - platform: sntp
     id: sntp_time
-    timezone: Asia/Karachi
-    servers:
-      - 0.pool.ntp.org
-      - 1.pool.ntp.org
-      - 2.pool.ntp.org
+    timezone: "Asia/Karachi"
     on_time_sync:
-      - script.execute: time_update
+      then:
+        - script.execute: time_update
     on_time:
-      - minutes: "*"
-        seconds: 0
+      - seconds: 0
+        minutes: "*"
         then:
           - script.execute: time_update
-      # Execute weather_update script with 1hr interval
-      - seconds: 0
-        minutes: 0
-        hours: /1
-        then:
-          - script.execute: weather_update
 
 script:
-    # Update Weather Label - WIP
-  - id: weather_update
-    then:
-      - lvgl.label.update:
-          id: display_time
-          text: !lambda |-
-            static char time_buf[17];
-            #auto now = id(sntp_time).now();          
-            #bool is_pm = now.hour >= 12;
-            #int hour_12 = now.hour % 12;
-            #if (hour_12 == 0) { hour_12 = 12; }
-            #snprintf(time_buf, sizeof(time_buf), "%02d:%02d %s", hour_12, now.minute, is_pm ? "PM" : "AM");
-            return time_buf;
   - id: time_update
     then:
       - lvgl.label.update:
@@ -146,17 +123,11 @@ script:
             if (hour_12 == 0) { hour_12 = 12; }
             snprintf(time_buf, sizeof(time_buf), "%02d:%02d %s", hour_12, now.minute, is_pm ? "PM" : "AM");
             return time_buf;
-      # - lvgl.label.update:
-      #     id: display_time_merridian
-      #     text: !lambda |-
-      #       static char time_buf[17];
-      #       auto now = id(sntp_time).now();            
-      #       bool is_pm = now.hour >= 12;
-      #       snprintf(time_buf, sizeof(time_buf), "%s",);
-      #       return time_buf;
 
 font:
-  - file: "gfonts://Roboto"
+  - file:
+      type: gfonts
+      family: Roboto
     id: roboto24
     size: 24
     # bpp: 4
@@ -164,7 +135,6 @@ font:
       - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
         glyphs: [
             "\U000F004B",
-            "\U0000f0ed",
             "\U000F006E",
             "\U000F012C",
             "\U000F179B",
@@ -258,7 +228,7 @@ font:
     size: 22
     # bpp: 4
 
-  - file: 
+  - file:
       type: gfonts
       family: Roboto
       weight: 900
@@ -266,7 +236,7 @@ font:
     size: 90
     # bpp: 4
 
-  - file: 
+  - file:
       type: gfonts
       family: Roboto
       weight: 900
@@ -298,11 +268,11 @@ ch422g:
 switch:
   - platform: gpio
     name: "Backlight Toggle"
-    pin: 
+    pin:
       ch422g: io_ex
       number: 2
       allow_other_uses: true
-# CH422G saves the last state internally, but gpio switch sets state as off except when using RESTORE_ modes
+    # CH422G saves the last state internally, but gpio switch sets state as off except when using RESTORE_ modes
     restore_mode: ALWAYS_ON
 
 touchscreen:
@@ -313,12 +283,12 @@ touchscreen:
   interrupt_pin: 4
   on_touch:
     - lambda: |-
-          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
-              touch.x,
-              touch.y,
-              touch.x_raw,
-              touch.y_raw
-              );
+        ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+            touch.x,
+            touch.y,
+            touch.x_raw,
+            touch.y_raw
+            );
 
 display:
   - platform: rpi_dpi_rgb
@@ -448,6 +418,16 @@ binary_sensor:
           state:
             checked: !lambda return x;
   - platform: homeassistant
+    id: backyard_light_switch
+    entity_id: switch.backyard_light_switch_1_2
+    publish_initial_state: true
+    on_state:
+      then:
+        lvgl.widget.update:
+          id: lv_backyard_light_btn
+          state:
+            checked: !lambda return x;
+  - platform: homeassistant
     id: water_pump_switch
     entity_id: switch.water_pump_switch_1
     publish_initial_state: true
@@ -481,7 +461,6 @@ color:
     hex: 3792CB
   - id: dark_blue
     hex: 0000FF
-
 
 #-------------------------------------------
 # lvgl Buttons
@@ -540,7 +519,6 @@ lvgl:
     button:
       text_font: roboto24
       scroll_on_focus: true
-      # group: general
       radius: 5
       width: 150
       height: 150
@@ -552,11 +530,11 @@ lvgl:
       bg_color: 0x000000
       border_width: 3
       border_color: white
-      border_side: ['TOP', 'BOTTOM', 'LEFT', 'RIGHT']
+      border_side: ["TOP", "BOTTOM", "LEFT", "RIGHT"]
       text_color: text_color
       checked:
-        # bg_color: 0xCC5E14   # Orange
-        bg_color: green   # Green
+        bg_color: 0xCC5E14 # Orange
+        # bg_color: green   # Green
         # bg_color: 0x026a6e    # Dark Green
         #bg_color: 0x0000FF   # Blue
         #bg_color: 0x3792CB   # Blue
@@ -565,7 +543,6 @@ lvgl:
     obj:
       text_font: roboto24
       scroll_on_focus: true
-      # group: general
       radius: 5
       width: 400
       height: 150
@@ -577,20 +554,10 @@ lvgl:
       bg_color: 0x000000
       border_width: 3
       border_color: white
-      border_side: ['TOP', 'BOTTOM', 'LEFT', 'RIGHT']
+      border_side: ["TOP", "BOTTOM", "LEFT", "RIGHT"]
       text_color: text_color
   top_layer:
     widgets:
-      # - label:
-      #     text_font: roboto24
-      #     text: "00:00 am"
-      #     id: display_time
-      #     align: bottom_mid
-      #     #x: -2
-      #     y: -10
-      #     text_align: right
-      #     text_color: 0xFFFFFF
-
       - label:
           text_font: roboto24
           text: "- %"
@@ -608,46 +575,30 @@ lvgl:
           align: bottom_left
           x: 12
           y: -10
-          #text_align: right
           text_color: 0xFFFFFF
           on_press:
             then:
               - lvgl.page.show: main_page
 
-
   page_wrap: true
   pages:
     - id: main_page
-      # skip: true
       layout:
-        type: grid #flex
-        #flex_flow: ROW_WRAP
+        type: grid
         grid_row_align: CENTER
         grid_column_align: CENTER
         grid_rows: [150px, 150px]
         grid_columns: [400px, 150px, 150px]
         pad_row: 20px
-        pad_column: 20px 
+        pad_column: 20px
       width: 100%
-      # bg_color: 0x000000
-      # bg_opa: cover
       pad_all: 5
       widgets:
         - obj:
-            #height: 207
             checkable: true
             id: lv_clock_obj
             grid_cell_row_pos: 0
             grid_cell_column_pos: 0
-            # layout:
-            #   type: grid #flex
-            #   #flex_flow: ROW_WRAP
-            #   grid_row_align: CENTER
-            #   grid_column_align: CENTER
-            #   grid_rows: [150px]
-            #   grid_columns: [300px, 100px]
-            #   pad_row: 0px
-            #   pad_column: 5px 
             widgets:
               - label:
                   text_font: roboto90
@@ -656,24 +607,9 @@ lvgl:
                   align: center
                   # grid_cell_row_pos: 0
                   # grid_cell_column_pos: 0
-                  text_align: 'CENTER'
+                  text_align: "CENTER"
                   text_color: 0xFFFFFF
-              # - label:
-              #     text_font: roboto55bold
-              #     text: "AM"
-              #     id: display_time_merridian
-              #     grid_cell_row_pos: 0
-              #     grid_cell_column_pos: 1
-              #     align: center
-              #     text_align: 'CENTER'
-                  # text_color: 0xFFFFFF
-            # on_short_click:
-            #   - homeassistant.service:
-            #       service: light.toggle
-            #       data:
-            #         entity_id: light.bedroom_light_2
         - obj:
-            #height: 207
             checkable: true
             id: lv_weather_obj
             grid_cell_row_pos: 1
@@ -686,13 +622,7 @@ lvgl:
                   align: center
                   text_align: center
                   text_color: 0xFFFFFF
-            # on_short_click:
-            #   - homeassistant.service:
-            #       service: light.toggle
-            #       data:
-            #         entity_id: light.bedroom_light_2
         - button:
-            #height: 207
             checkable: true
             id: lv_button_1
             grid_cell_row_pos: 0
@@ -714,7 +644,6 @@ lvgl:
                   data:
                     entity_id: light.bedroom_light_2
         - button:
-            #height: 207
             checkable: true
             id: lv_button_2
             grid_cell_row_pos: 0
@@ -736,7 +665,6 @@ lvgl:
                   data:
                     entity_id: light.living_room_light_2
         - button:
-            #height: 207
             checkable: true
             id: lv_backyard_light_btn
             grid_cell_row_pos: 1
@@ -758,7 +686,6 @@ lvgl:
                   data:
                     entity_id: switch.backyard_light_switch_1_2
         - button:
-            #height: 207
             checkable: true
             id: lv_button_3
             grid_cell_row_pos: 1
