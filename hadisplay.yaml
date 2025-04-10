@@ -24,6 +24,9 @@ substitutions:
   kiss: "\U000F0C73"
   hvac: "\U000F0D43"
   pump_icon: "\U000F058F"
+  homeicon: "\U000F02DC"
+  lefticon: "\U000F0141"
+  righticon: "\U000F0142"
 
 esphome:
   name: ${name}
@@ -56,6 +59,7 @@ logger:
   level: DEBUG
   hardware_uart: UART0
 
+
 # Enable Home Assistant API
 api:
   encryption:
@@ -69,13 +73,12 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   manual_ip:
-    #   # Set this to the IP of the ESP
+  #   # Set this to the IP of the ESP
     static_ip: 192.168.1.138
-    #   # Set this to the IP address of the router. Often ends with .1
+  #   # Set this to the IP address of the router. Often ends with .1
     gateway: 192.168.1.1
-    #   # The subnet of the network. 255.255.255.0 works for most home networks.
+  #   # The subnet of the network. 255.255.255.0 works for most home networks.
     subnet: 255.255.255.0
-    #   # The IP address of the DNS server. Often the same as the gateway.
     dns1: 192.168.1.1
 
   # # Enable fallback hotspot (captive portal) in case wifi connection fails
@@ -92,13 +95,15 @@ external_components:
 
   # CH422G I/O Expander
   # https://github.com/esphome/esphome/pull/7356
-  - source: github://pr#7356
-    components: [ch422g]
+  # - source: github://pr#7356
+  #   components: [ch422g]
 
   # rpi_dpi_rgb
   # https://github.com/esphome/esphome/pull/7383
   - source: github://pr#7383
     components: [rpi_dpi_rgb]
+
+  
 
 time:
   - platform: sntp
@@ -131,7 +136,7 @@ script:
       #     id: display_time
       #     text: !lambda |-
       #       static char time_buf[17];
-      #       auto now = id(sntp_time).now();
+      #       auto now = id(sntp_time).now();            
       #       bool is_pm = now.hour >= 12;
       #       snprintf(time_buf, sizeof(time_buf), "%s");
       #       ESP_LOGI("time: %s", time_buf);
@@ -143,7 +148,7 @@ font:
       family: Roboto
     id: roboto24
     size: 24
-    # bpp: 4
+    bpp: 4
     extras:
       - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
         glyphs: [
@@ -165,13 +170,15 @@ font:
             "\U000F03F0", # mdi-percent
             "\U000F0504", # mdi- celcius
             "\U000F091E",
-            "\U000F0143", # mdi-arrow_up
             "\U000F0140", # mdi-arrow_down
+            "\U000F0141", # mdi-arrow_left
+            "\U000F0142", # mdi-arrow_right
+            "\U000F0143", # mdi-arrow_up
           ]
   - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
     id: weather70
     size: 70
-    # bpp: 4
+    bpp: 4
     glyphs: &mdi-weather-glyphs
       - "\U000F0590" # mdi-weather-cloudy
       - "\U000F0F2F" # mdi-weather-cloudy-alert
@@ -207,7 +214,7 @@ font:
   - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
     id: light32
     size: 32
-    # bpp: 4
+    bpp: 4
     glyphs: [
         "\U000F0335", # mdi-lightbulb
         "\U000F0769", # mdi-ceiling-light
@@ -234,32 +241,83 @@ font:
   - file: "gfonts://Roboto"
     id: roboto10
     size: 10
-    # bpp: 4
+    bpp: 4
 
   - file: "gfonts://Roboto"
     id: roboto22
     size: 22
-    # bpp: 4
+    bpp: 4
 
-  - file:
+  - file: 
       type: gfonts
       family: Roboto
       weight: 900
     id: roboto90
     size: 90
-    # bpp: 4
+    bpp: 4
 
-  - file:
+  - file: 
       type: gfonts
       family: Roboto
       weight: 900
     id: roboto55bold
+    bpp: 4
     size: 55
 
   - file: "gfonts://Roboto"
     id: roboto55
     size: 55
-    # bpp: 4
+    extras:
+      - file: "fonts/materialdesignicons-webfont.ttf" # http://materialdesignicons.com/cdn/7.4.47/
+        glyphs: [
+            "\U000F004B",
+            "\U000F006E",
+            "\U000F012C",
+            "\U000F179B",
+            "\U000F0748",
+            "\U000F1A1B",
+            "\U000F02DC",
+            "\U000F0A02",
+            "\U000F035F",
+            "\U000F0156",
+            "\U000F0C5F",
+            "\U000f0084",
+            "\U000f0091",
+            "\U000F058E",
+            "\U000F10C3",
+            "\U000F03F0", # mdi-percent
+            "\U000F0504", # mdi- celcius
+            "\U000F091E",
+            "\U000F0140", # mdi-arrow_down
+            "\U000F0141", # mdi-arrow_left
+            "\U000F0142", # mdi-arrow_right
+            "\U000F0143", # mdi-arrow_up
+          ]
+
+  - file: 
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: roboto40bold
+    size: 40
+
+  - file: "gfonts://Roboto"
+    bpp: 4
+    id: roboto40
+    size: 40
+    
+  - file: 
+      type: gfonts
+      family: Roboto
+      weight: 900
+    id: roboto30bold
+    bpp: 4
+    size: 30
+
+  - file: "gfonts://Roboto"
+    id: roboto30
+    bpp: 4
+    size: 30
 
 image:
   - file: "images/dashboard1.jpg"
@@ -275,34 +333,44 @@ i2c:
 
 ch422g:
   - id: io_ex
-    address: 0x24
+    # address: 0x24
 
 # Toggles backlight of Waveshare ESP32-S3-Touch-LCD-4.3
 switch:
   - platform: gpio
     id: backlight_switch
     name: "Backlight Toggle"
-    pin:
+    pin: 
       ch422g: io_ex
       number: 2
       allow_other_uses: true
     # CH422G saves the last state internally, but gpio switch sets state as off except when using RESTORE_ modes
     restore_mode: ALWAYS_ON
 
+# deep_sleep:
+#   run_duration:
+#     default: 30s
+#     touch_wakeup_reason: 30s
+#   touch_wakeup: True
+#   sleep_duration: 10min
+
 touchscreen:
   platform: gt911
-  address: 0x5D
+  # address: 0x5D
   id: my_touchscreen
   update_interval: 16ms
   interrupt_pin: 4
+  reset_pin:
+    ch422g: io_ex
+    number: 1
   on_touch:
-    - lambda: |-
-        ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
-            touch.x,
-            touch.y,
-            touch.x_raw,
-            touch.y_raw
-            );
+    - lambda: |- 
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+              touch.x,
+              touch.y,
+              touch.x_raw,
+              touch.y_raw
+              );
   on_release:
     - if:
         condition: lvgl.is_paused
@@ -372,6 +440,28 @@ display:
 #-------------------------------------------
 sensor:
   - platform: homeassistant
+    entity_id: weather.forecast
+    attribute: temperature
+    id: outdoor_temp
+    on_value:
+      - lvgl.label.update:
+          id: weather_label
+          text:
+            format: "%.1f\U000F0504"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: weather.forecast
+    attribute: humidity
+    id: outdoor_humi
+    on_value:
+      - lvgl.label.update:
+          id: weather_humidity_label
+          text:
+            format: "%.0f\U000F03F0"
+            args: ["x"]
+
+  - platform: homeassistant
     entity_id: sensor.bedroom_temperature_preserved
     id: bedroom_temp
     on_value:
@@ -390,6 +480,94 @@ sensor:
           text:
             format: "\U000F058E %.0f \U000F03F0"
             args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.current_load
+    id: current_load
+    on_value:
+      - lvgl.label.update:
+          id: current_load_text
+          text:
+            format: "%.0fW"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.grid_meter_phase_a_power_2
+    id: grid_power
+    on_value:
+      - lvgl.label.update:
+          id: grid_power_text
+          text:
+            format: "%.3fkW"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.solar_inverter_pv_output_power
+    id: pv_power
+    on_value:
+      - lvgl.label.update:
+          id: pv_power_text
+          text:
+            format: "%.0fW"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.max_pv_power
+    id: max_pv_power
+    on_value:
+      - lvgl.label.update:
+          id: max_pv_power_text
+          text:
+            format: "%.0fW"
+            args: ["x"]
+
+  # - platform: homeassistant
+  #   entity_id: sensor.solar_inverter_battery_capacity
+  #   id: battery_capacity
+  #   on_value:
+  #     - lvgl.label.update:
+  #         id: battery_capacity_text
+
+  - platform: homeassistant
+    entity_id: sensor.pv_daily_production
+    id: pv_units_today
+    on_value:
+      - lvgl.label.update:
+          id: pv_units_today_text
+          text:
+            format: "%.1fkWh"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.grid_reverse_meter
+    id: grid_sold
+    on_value:
+      - lvgl.label.update:
+          id: grid_sold_text
+          text:
+            format: "%.1fkWh"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.grid_forward_meter
+    id: grid_bought
+    on_value:
+      - lvgl.label.update:
+          id: grid_bought_text
+          text:
+            format: "%.1fkWh"
+            args: ["x"]
+
+  - platform: homeassistant
+    entity_id: sensor.daily_home_energy
+    id: total_unit_consumed
+    on_value:
+      - lvgl.label.update:
+          id: total_unit_consumed_text
+          text:
+            format: "%.1fkWh"
+            args: ["x"]
+            
 
   - platform: wifi_signal
     name: "WiFi Signal"
@@ -412,11 +590,11 @@ text_sensor:
     id: time_text
     update_interval: 20s
     lambda: |-
-      static char time_buf[17];
-      auto now = id(sntp_time).now();            
-      bool is_pm = now.hour >= 12;
-      snprintf(time_buf, sizeof(time_buf), "%02d:%02d", now.hour, now.minute);
-      return {time_buf};
+        static char time_buf[17];
+        auto now = id(sntp_time).now();            
+        bool is_pm = now.hour >= 12;
+        snprintf(time_buf, sizeof(time_buf), "%02d:%02d", now.hour, now.minute);
+        return {time_buf};
   - platform: wifi_info
     ip_address:
       name: "IP Address"
@@ -442,6 +620,8 @@ number:
     mode: box
 
 binary_sensor:
+  # - platform: esp32_touch
+  #   id: my_touchscreen
   - platform: homeassistant
     id: bedroom_light
     entity_id: light.bedroom_light_2
@@ -470,6 +650,16 @@ binary_sensor:
       then:
         lvgl.widget.update:
           id: lv_backyard_light_btn
+          state:
+            checked: !lambda return x;
+  - platform: homeassistant
+    id: frontyard_light_switch
+    entity_id: switch.frontyard_light_switch_1_2
+    publish_initial_state: true
+    on_state:
+      then:
+        lvgl.widget.update:
+          id: lv_frontyard_light_btn
           state:
             checked: !lambda return x;
   - platform: homeassistant
@@ -507,6 +697,7 @@ color:
   - id: dark_blue
     hex: 0000FF
 
+
 #-------------------------------------------
 # lvgl Buttons
 #-------------------------------------------
@@ -519,23 +710,9 @@ lvgl:
       - logger.log: "LVGL is idle"
       - switch.turn_off: backlight_switch
       - lvgl.pause:
-  # on_idle:
-  #   - timeout: 10s
-  #     then:
-  #       - logger.log: idle timeout
-  #       - if:
-  #           condition:
-  #             lvgl.is_idle:
-  #               timeout: 5s
-  #           then:
-  #             - logger.log: LVGL is idle
-  #   - timeout: 15s
-  #     then:
-  #       - logger.log: idle 15s timeout
-
-  # log_level: INFO
   color_depth: 16
   disp_bg_image: disp_bg
+  page_wrap: true
   bg_opa: TRANSP
   style_definitions:
     - id: style_line
@@ -552,8 +729,8 @@ lvgl:
 
     ####Header_Footer##########
     - id: header_footer
-      bg_color: 0x0C7B5F
-      bg_grad_color: 0x03291F
+      bg_color: 0x1b1b1b
+      bg_grad_color: 0x1b1b1b
       bg_grad_dir: VER
       bg_opa: COVER
       border_width: 0
@@ -565,13 +742,34 @@ lvgl:
       text_color: 0xFFFFFF
       width: 100%
       height: 40
-
   theme:
+    buttonmatrix:
+      bg_opa: TRANSP
+      # border_color: 0x0077b3
+      # border_width: 0
+      text_color: 0xFFFFFF
+      pad_all: 0
+      items: # set all your buttonmatrix buttons to use your custom defined styles and font
+        bg_color: 0x1b1b1b
+        bg_grad_color: 0x1b1b1b
+        bg_grad_dir: VER
+        bg_opa: COVER
+        # border_color: 0x0077b3
+        # border_width: 1
+        text_color: 0xFFFFFF
+        text_font: roboto24
+        pressed:
+          bg_color: 0xFF6700
+          bg_grad_color: 0xa6521b
+        checked:
+          bg_color: 0xFF6700
+          bg_grad_color: 0x03324A
+          text_color: 0x005580
     button:
       text_font: roboto24
       scroll_on_focus: true
       radius: 5
-      width: 150
+      width: 100
       height: 150
       pad_left: 10px
       pad_top: 10px
@@ -581,16 +779,15 @@ lvgl:
       bg_color: 0x000000
       border_width: 3
       border_color: white
-      border_side: ["TOP", "BOTTOM", "LEFT", "RIGHT"]
+      border_side: ['TOP', 'BOTTOM', 'LEFT', 'RIGHT']
       text_color: text_color
       checked:
-        bg_color: 0xCC5E14 # Orange
+        bg_color: 0xCC5E14   # Orange
         # bg_color: green   # Green
         # bg_color: 0x026a6e    # Dark Green
         #bg_color: 0x0000FF   # Blue
         #bg_color: 0x3792CB   # Blue
         text_color: text_color
-
     obj:
       text_font: roboto24
       scroll_on_focus: true
@@ -605,33 +802,57 @@ lvgl:
       bg_color: 0x000000
       border_width: 3
       border_color: white
-      border_side: ["TOP", "BOTTOM", "LEFT", "RIGHT"]
+      border_side: ['TOP', 'BOTTOM', 'LEFT', 'RIGHT']
       text_color: text_color
   top_layer:
     widgets:
-      - label:
-          text_font: roboto24
-          text: "- %"
-          id: humidity_text
-          align: bottom_right
-          x: -20
-          y: -10
-          text_align: right
-          text_color: 0xFFFFFF
+      - buttonmatrix:
+          align: bottom_mid
+          styles: header_footer
+          pad_all: 0
+          outline_width: 0
+          id: top_layer
+          items:
+            styles: header_footer
+          rows:
+            - buttons:
+              - id: page_prev
+                text: $lefticon
+                on_press:
+                  then:
+                    - lvgl.page.previous:
+                        animation: OUT_RIGHT
+                        time: 300ms
+              - id: page_home
+                text: $homeicon
+                on_press:
+                  then:
+                    lvgl.page.show: main_page
+              - id: page_next
+                text: $righticon
+                on_press:
+                  then:
+                    - lvgl.page.next:
+                        animation: OUT_LEFT
+                        time: 300ms
+      # - label:
+      #     text_font: roboto24
+      #     text: "- %"
+      #     id: humidity_text
+      #     align: top_right
+      #     x: -20
+      #     y: 7
+      #     # text_align: right
+      #     text_color: 0xFFFFFF
 
-      - label:
-          text_font: roboto24
-          text: "-.-°C"
-          id: temp_text
-          align: bottom_left
-          x: 12
-          y: -10
-          text_color: 0xFFFFFF
-          on_press:
-            then:
-              - lvgl.page.show: main_page
-
-  page_wrap: true
+      # - label:
+      #     text_font: roboto24
+      #     text: "-.-°C"
+      #     id: temp_text
+      #     align: top_left
+      #     x: 12
+      #     y: 7
+      #     text_color: 0xFFFFFF
   pages:
     - id: main_page
       layout:
@@ -639,9 +860,9 @@ lvgl:
         grid_row_align: CENTER
         grid_column_align: CENTER
         grid_rows: [150px, 150px]
-        grid_columns: [400px, 150px, 150px]
+        grid_columns: [400px, 100px, 100px, 100px]
         pad_row: 20px
-        pad_column: 20px
+        pad_column: 20px 
       width: 100%
       pad_all: 5
       widgets:
@@ -650,27 +871,43 @@ lvgl:
             id: lv_clock_obj
             grid_cell_row_pos: 0
             grid_cell_column_pos: 0
+            width: 400
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
             widgets:
               - label:
                   text_font: roboto90
                   text: "00:00"
                   id: display_time
                   align: center
-                  # grid_cell_row_pos: 0
-                  # grid_cell_column_pos: 0
-                  text_align: "CENTER"
+                  text_align: 'CENTER'
                   text_color: 0xFFFFFF
+        
         - obj:
             checkable: true
             id: lv_weather_obj
             grid_cell_row_pos: 1
             grid_cell_column_pos: 0
+            layout: # enable the FLEX layout for the children widgets
+              type: FLEX
+              flex_flow: ROW # the order of the widgets starts top left
+              flex_align_main: CENTER
+              flex_align_cross: START
+              flex_align_track: CENTER
             widgets:
               - label:
                   text_font: roboto55
-                  text: "It is 25"
+                  text: "--.-"
                   id: weather_label
-                  align: center
+                  text_align: center
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto55
+                  text: "--"
+                  id: weather_humidity_label
                   text_align: center
                   text_color: 0xFFFFFF
         - button:
@@ -715,11 +952,59 @@ lvgl:
                   service: light.toggle
                   data:
                     entity_id: light.living_room_light_2
+        - obj:
+            checkable: true
+            id: lv_room_obj
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 3
+            width: 100
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto24
+                  text: "--.-"
+                  id: temp_text
+                  align: top_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto24
+                  text: "--"
+                  id: humidity_text
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+                    
+        - button:
+            checkable: true
+            id: lv_frontyard_light_btn
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 1
+            widgets:
+              - label:
+                  text_font: light32
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_frontyard_light_icon
+              - label:
+                  text_font: roboto22
+                  align: bottom_mid
+                  text: "Frontyard"
+                  long_mode: dot
+            on_short_click:
+              - homeassistant.service:
+                  service: switch.toggle
+                  data:
+                    entity_id: switch.frontyard_light_switch_1_2
         - button:
             checkable: true
             id: lv_backyard_light_btn
             grid_cell_row_pos: 1
-            grid_cell_column_pos: 1
+            grid_cell_column_pos: 2
             widgets:
               - label:
                   text_font: light32
@@ -740,7 +1025,7 @@ lvgl:
             checkable: true
             id: lv_button_3
             grid_cell_row_pos: 1
-            grid_cell_column_pos: 2
+            grid_cell_column_pos: 3
             widgets:
               - label:
                   text_font: light32
@@ -757,3 +1042,199 @@ lvgl:
                   service: switch.toggle
                   data:
                     entity_id: switch.water_pump_switch_1
+    - id: power_page
+      layout:
+        type: grid
+        grid_row_align: CENTER
+        grid_column_align: CENTER
+        grid_rows: [150px, 150px]
+        grid_columns: [175px, 175px, 175px, 175px]
+        pad_row: 20px
+        pad_column: 20px 
+      width: 100%
+      pad_all: 5
+      widgets:
+        - obj:
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 0
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: current_load_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "Current Load"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 1
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: grid_power_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "Grid Power"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 2
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: pv_power_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "PV Power"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 3
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: max_pv_power_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "Max PV"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 0
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: pv_units_today_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "PV Units"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 1
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: grid_sold_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "Grid Sold"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 2
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: grid_bought_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "Grid Used"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+        - obj:
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 3
+            width: 175
+            height: 150
+            pad_left: 10px
+            pad_top: 10px
+            pad_bottom: 10px
+            pad_right: 10px
+            widgets:
+              - label:
+                  text_font: roboto30bold
+                  text: "---"
+                  id: total_unit_consumed_text
+                  align: center
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
+              - label:
+                  text_font: roboto22
+                  text: "Total Used"
+                  align: bottom_mid
+                  text_align: 'CENTER'
+                  text_color: 0xFFFFFF
